@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: parishram-prop-hunt-server
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:$PORT app:app"
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.9
