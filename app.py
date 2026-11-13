@@ -775,6 +775,44 @@ def handle_report_elimination(data):
     }, to=room_code)
 
 
+@socketio.on("match_ended")
+def handle_match_ended(data):
+    """
+    Authoritative Match End Relay (Host -> All Clients in room)
+    Payload: { "winning_team": "Hunter"|"Prop", "win_reason": "..." }
+    """
+    sid = request.sid
+    room_code = sid_to_room.get(sid)
+    if not room_code or room_code not in rooms:
+        return
+    room = rooms[room_code]
+    room["status"] = "waiting" # Set room back to waiting for next round
+    data = data or {}
+    winning_team = data.get("winning_team", "Prop")
+    win_reason = data.get("win_reason", "Round complete")
+
+    logger.info(f"Match ended in room {room_code}. Winner: {winning_team} ({win_reason})")
+    socketio.emit("match_ended_broadcast", {
+        "room_code": room_code,
+        "winning_team": winning_team,
+        "win_reason": win_reason
+    }, to=room_code)
+
+
+@socketio.on("phase_changed")
+def handle_phase_changed(data):
+    """
+    Authoritative Phase Transition Relay (Host -> All Clients)
+    Payload: { "phase": int, "remaining_seconds": float }
+    """
+    sid = request.sid
+    room_code = sid_to_room.get(sid)
+    if not room_code or room_code not in rooms:
+        return
+    data = data or {}
+    emit("phase_changed_broadcast", data, to=room_code, include_self=False)
+
+
 @socketio.on("ping_check")
 def handle_ping_check(data=None):
     """Instant ping/pong latency check."""
